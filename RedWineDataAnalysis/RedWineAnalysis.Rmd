@@ -33,6 +33,10 @@ wine$rating <- ordered(wine$rating,
                      levels = c('bad', 'average', 'good'))
 
 # We do this transformation to faciliate analysis on quality in the dataset
+
+# We drop the column X which is just the row number
+wineX <- wine
+wine <- wine[ , !names(wine) %in% c("X")]
 ```
 
 # Univariate Plots Section
@@ -71,7 +75,8 @@ For Citric Acid, it seems that the biggest density is with zero. Then we get spi
 ## Residual Sugar
 ```{r echo=FALSE, ResidualSugar}
 ggplot(data=wine, aes(x=residual.sugar)) +
-  geom_histogram(binwidth = 0.1)
+  geom_histogram(binwidth = 0.1) +
+  scale_x_log10(breaks=seq(0,15,1))
 ```
 
 Most of the density is around value 2 with outliers past value 4 till 15.
@@ -124,6 +129,15 @@ ggplot(data=wine, aes(x=alcohol)) +
 
 Alcohol seems to have a similar distribution to sulphur. There could be a relationship there that is worth exploring.
 
+## Chlorides
+```{r echo=FALSE, Chlorides}
+ggplot(data=wine, aes(x=chlorides)) +
+  geom_histogram(binwidth = 0.01) +
+  scale_x_log10(breaks=seq(0.01,0.5,0.08))
+```
+
+Chlorides seems to be concentrated around 0.08 value where the majority of observations are in. It has some outliers in the extreme.
+
 ## Rating
 ```{r echo=FALSE, Rating}
 ggplot(data=wine, aes(x=quality)) +
@@ -134,6 +148,10 @@ ggplot(data=wine, aes(x=rating)) +
 
 The majority of the data is centered around average quality. This could make predictive models based on quality less predictive.
 
+Rating value ranges is deteremined as follows:
+  . Bad -- <5
+  . Average -- 5<= Quality < 7
+  . Good -- 7<= Quality < 10
 
 # Univariate Analysis
 
@@ -164,8 +182,8 @@ fun_mean <- function(x){
   return(data.frame(y=mean(x),label=round(mean(x,na.rm=T),digits=2)))}
 ```
 ```{r echo=FALSE, CorrelationSummary}
-rcorr(as.matrix(wine[2:13]))
-pairs.panels(wine[2:14])
+rcorr(as.matrix(wine[ , !names(wine) %in% c("rating")]))
+pairs.panels(wine)
 ```
 
 We can see many strongly correlated variables that would be interesting to explore further. Like alcohol level and rating. Also fixed acidity and density show strong correlation. Some correlations are to be expected like quality and rating or free sulfur dioxide and total sulfur dioxide.
@@ -195,7 +213,7 @@ It is very interesting correlation. It seems that most high quality wine have hi
 ## Quality to Sulphates
 ```{r echo=FALSE}
 ggplot(aes(x=quality, y=sulphates), data=wine) +
-  geom_boxplot() +
+  geom_boxplot(alpha=0.2) +
   stat_summary(fun.y = mean, geom="point",colour="darkred", size=3) +
   stat_summary(fun.data = fun_mean, geom="text", vjust=-0.7) +
   xlab("Wine Quality Rating") + 
@@ -219,7 +237,7 @@ There is a clear positive trend with Citric Acid and quality. The vast majority 
 ## Quality to Volatile Acidity
 ```{r echo=FALSE}
 ggplot(aes(x=quality, y=volatile.acidity), data=wine) +
-  geom_boxplot() +
+  geom_boxplot(alpha=0.5) +
   stat_summary(fun.y = mean, geom="point",colour="darkred", size=3) +
   stat_summary(fun.data = fun_mean, geom="text", vjust=-0.7) +
   xlab("Wine Quality Rating") + 
@@ -231,7 +249,7 @@ We have a strong negative correlation with volatile acidity. Whiole there are so
 ## Acidity with Density
 ```{r echo=FALSE}
 ggplot(data = wine, aes(x = fixed.acidity, y = density)) +
-  geom_point() +
+  geom_point(alpha=0.4) +
   geom_smooth(method="lm")
 ```
 
@@ -240,7 +258,7 @@ This strong linear correlation is to be noted. Acidity seems to be a very strong
 ## Citric Acid with PH level
 ```{r echo=FALSE}
 ggplot(data = wine, aes(x = citric.acid, y = pH)) +
-  geom_point() +
+  geom_point(alpha = 0.5) +
   geom_smooth(method="lm")
 ```
 
@@ -269,7 +287,7 @@ Since Alcohol seems one of our strongest relationship, it is worth exploring how
 ### Alcohol and Chlorides
 ```{r echo=FALSE, warning=FALSE}
 ggplot(data = wine, aes(y = chlorides, x = alcohol, color = quality)) +
-  geom_point() + scale_color_brewer() + theme_dark()
+  geom_point(alpha=0.5) + scale_color_brewer() + theme_dark()
 ```
 
 There seems to be a small correlation between chlorides and quality when Alcohol is held constant. What I find surprising is the spike of values in chlorides at low alcohol values. I wonder if it is related to the fermentation process some how.
@@ -277,7 +295,7 @@ There seems to be a small correlation between chlorides and quality when Alcohol
 ### Alcohol and Total Sulfur Dioxide
 ```{r echo=FALSE, warning=FALSE}
 ggplot(data = wine, aes(y = total.sulfur.dioxide, x = alcohol, color = quality)) +
-  geom_point() + scale_color_brewer() + theme_dark()
+  geom_point(alpha=0.5) + scale_color_brewer() + theme_dark()
 ```
 
 There seems to be little correlation between Total Sulfur and Alcohol or Quality.
@@ -285,7 +303,7 @@ There seems to be little correlation between Total Sulfur and Alcohol or Quality
 ### Alcohol and Density
 ```{r echo=FALSE, warning=FALSE}
 ggplot(data = wine, aes(y = density, x = alcohol, color = quality)) +
-  geom_point() + scale_color_brewer() + theme_dark()
+  geom_point(alpha=0.5) + scale_color_brewer() + theme_dark()
 ```
 
 There does not seem to be correlation between density and quality.
@@ -293,7 +311,7 @@ There does not seem to be correlation between density and quality.
 ### Alcohol and Citric Acid
 ```{r echo=FALSE, warning=FALSE}
 ggplot(data = wine, aes(y = citric.acid, x = alcohol, color = quality)) +
-  geom_point() + scale_color_brewer() + theme_dark()
+  geom_point(alpha=0.5) + scale_color_brewer() + theme_dark()
 ```
 
 There is almost no correlation between citric acid and Alcohol. However there is a trend between citric acid and rating that further confirms our previous suspicion.
@@ -335,8 +353,8 @@ Now that we have explored the variables, we will attempt to build a prediction m
 
 ```{r echo=FALSE, Linear_Model}
 set.seed(5523452)
-training_data <- sample_frac(wine, .7)
-test_data <- wine[ !wine$X %in% training_data$X, ]
+training_data <- sample_frac(wineX, .7)
+test_data <- wineX[ !wineX$X %in% training_data$X, ]
 m1 <- lm(as.numeric(quality) ~ alcohol, data = training_data)
 m2 <- update(m1, ~ . + citric.acid)
 m3 <- update(m2, ~ . + sulphates)
@@ -349,7 +367,7 @@ df <- data.frame(
 )
 names(df) <- c("quality", "error")
 ggplot(data=df, aes(x=quality,y=error)) +
-  geom_point()
+  geom_boxplot()
 ```
 
 From the R-squared values, model 4 seems our best option.
@@ -367,46 +385,38 @@ The prediction power of this model is not very strong. This is because of how ou
 # Final Plots and Summary
 Here we revist some of the interesting plots.
 
-## Rating count
-```{r echo=FALSE, RatingCount}
-c4 = c("A", "B", "C")
-ggplot(data=wine, aes(x=rating)) +
-  geom_bar() + xlab("Quality of the wine") + 
-  ylab("Wine count in dataset")
-```
-
-It is very interesting how our dataset is so skewed toward average quality.
-
-
 ## Quality to Alcohol
 ```{r echo=FALSE}
 ggplot(aes(x=rating, y=alcohol), data=wine) +
-  geom_boxplot() +
+  geom_boxplot(alpha=0.5) +
   stat_summary(fun.y = mean, geom="point",colour="darkred", size=3) +
   stat_summary(fun.data = fun_mean, geom="text", vjust=-0.7) +
   xlab("Wine Quality Rating") + 
   ylab("Alcohol level (% per volume)")
 ```
-Clearly here that high concentration of alcohol is important for fine wine.
+
+While most fine wine has a higher concentration of alcohol as evident from the graph, the distinction betwen average and bad in terms of alcohol concentration is not as prononounced. Clearly here that high concentration of alcohol is important for fine wine, but considering how little data we have on fine wine, it could just be sampling noise.
 
 ## Alcohol and Chlorides
 ```{r echo=FALSE, warning=FALSE}
 ggplot(data = wine, aes(y = chlorides, x = alcohol, color = quality)) +
-  geom_point() + scale_color_brewer() + theme_dark() +
+  geom_point(alpha=0.5) + scale_color_brewer() + theme_dark() +
   xlab("Alcohol level(% per volume)") + 
   ylab("Chlorides concentration (g/dm3)")
 ```
 
-This correlation is interesting because of the spike of chloride concentration at 7% alcohol level. This could be because of the way this alcohol level is achieved.
+This correlation is interesting because of the spike of chloride concentration at 7% alcohol level. This could be because of the way this alcohol level is achieved. I can't see a clear relation between chlorides and quality however.
 
 ## Linear model Error
 ```{r echo=FALSE, warning=FALSE}
 ggplot(data=df, aes(x=quality,y=error)) +
-  geom_point() +
+  geom_boxplot(alpha=0.5) +
+  stat_summary(fun.y = mean, geom="point",colour="darkred", size=3) +
+  stat_summary(fun.data = fun_mean, geom="text", vjust=-0.7) +
   xlab("Actual Quality Level") + 
   ylab("Variation from actual error")
 ```
-The linear model used only covers around 35% of the variance in data to predict quality. This quite a poor model to depend on for quality prediction. This is likely because of the lack of data on fine or poor wine.
+The linear model used only covers around 35% of the variance in data to predict quality based on R-squared value of 0.354. This quite a poor model to depend on for quality prediction. This is likely because of the lack of data on fine or poor wine.
 
 # Reflection
 
